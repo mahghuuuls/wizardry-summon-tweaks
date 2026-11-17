@@ -48,6 +48,11 @@ public final class IdentityFixture extends CommandBase {
                 case "faults":
                     FaultChecks.run(server);
                     break;
+                case "melee":
+                    Class.forName("wstfixture.MeleeChecks")
+                            .getMethod("run", MinecraftServer.class, ICommandSender.class, String[].class)
+                            .invoke(null, server, sender, args);
+                    break;
                 case "load":
                     loadArena(world);
                     output("ARENA_LOADED");

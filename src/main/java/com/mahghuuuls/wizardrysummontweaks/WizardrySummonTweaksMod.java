@@ -1,6 +1,8 @@
 package com.mahghuuuls.wizardrysummontweaks;
 
 import com.mahghuuuls.wizardrysummontweaks.command.InspectCommand;
+import com.mahghuuuls.wizardrysummontweaks.combat.MeleeProtection;
+import com.mahghuuuls.wizardrysummontweaks.compat.wizardry.WizardryMeleeSource;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerConfiguration;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerRules;
 import com.mahghuuuls.wizardrysummontweaks.summon.SummonProvider;
@@ -29,10 +31,18 @@ import java.io.File;
         dependencies = "required-after:forge@[14.23.5.2847,);required-after:mixinbooter@[12.1,);after:ebwizardry@[4.3.19,)"
 )
 public final class WizardrySummonTweaksMod {
+    @Mod.Instance(Tags.MOD_ID)
+    private static WizardrySummonTweaksMod instance;
+
     private ServerConfiguration configuration;
     private ServerRules rules = ServerRules.DEFAULTS;
     private SummonTracker tracker;
     private Logger logger;
+    private MeleeProtection melee;
+
+    public static MeleeProtection meleeProtection() {
+        return instance == null ? null : instance.melee;
+    }
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -50,7 +60,10 @@ public final class WizardrySummonTweaksMod {
 
     @Mod.EventHandler
     public void starting(FMLServerStartingEvent event) {
-        tracker.start(event.getServer(), createProvider());
+        SummonProvider provider = createProvider();
+        tracker.start(event.getServer(), provider);
+        melee = new MeleeProtection(rules, tracker, provider == null ? source -> null : WizardryMeleeSource::actor);
+        MinecraftForge.EVENT_BUS.register(melee);
         event.registerServerCommand(new InspectCommand(tracker, () -> rules));
     }
 
@@ -82,6 +95,10 @@ public final class WizardrySummonTweaksMod {
 
     @Mod.EventHandler
     public void stopped(FMLServerStoppedEvent event) {
+        if (melee != null) {
+            MinecraftForge.EVENT_BUS.unregister(melee);
+            melee = null;
+        }
         tracker.stop();
         rules = ServerRules.DEFAULTS;
     }
