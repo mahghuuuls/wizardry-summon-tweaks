@@ -281,8 +281,8 @@ public final class OriginChecks {
                 "wrong player melee outcome for " + EntityList.getKey(target));
     }
 
-    private static <T extends EntityLiving> T checkSpawn(WorldServer world, EntityPlayerMP caster, String spell,
-                                                         Class<T> type, boolean cancel) {
+    static <T extends EntityLiving> T checkSpawn(WorldServer world, EntityPlayerMP caster, String spell,
+                                                  Class<T> type, boolean cancel) {
         SpawnTrace trace = new SpawnTrace(world, type, cancel);
         MinecraftForge.EVENT_BUS.register(trace);
         boolean cast;

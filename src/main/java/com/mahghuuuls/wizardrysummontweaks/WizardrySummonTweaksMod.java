@@ -2,6 +2,7 @@ package com.mahghuuuls.wizardrysummontweaks;
 
 import com.mahghuuuls.wizardrysummontweaks.command.InspectCommand;
 import com.mahghuuuls.wizardrysummontweaks.combat.CombatPolicy;
+import com.mahghuuuls.wizardrysummontweaks.combat.DeathRewards;
 import com.mahghuuuls.wizardrysummontweaks.combat.MeleeProtection;
 import com.mahghuuuls.wizardrysummontweaks.combat.TargetProtection;
 import com.mahghuuuls.wizardrysummontweaks.compat.wizardry.WizardryMeleeSource;
@@ -46,6 +47,7 @@ public final class WizardrySummonTweaksMod {
     private Logger logger;
     private CombatPolicy combat;
     private MeleeProtection melee;
+    private DeathRewards rewards;
     private TargetProtection targets;
 
     public static CombatPolicy combatPolicy() {
@@ -86,7 +88,9 @@ public final class WizardrySummonTweaksMod {
         combat = new CombatPolicy(rules, tracker);
         targets = new TargetProtection(combat);
         melee = new MeleeProtection(combat, provider == null ? source -> null : WizardryMeleeSource::actor);
+        rewards = new DeathRewards(rules, tracker);
         MinecraftForge.EVENT_BUS.register(melee);
+        MinecraftForge.EVENT_BUS.register(rewards);
         event.registerServerCommand(new InspectCommand(tracker, () -> rules));
     }
 
@@ -127,6 +131,10 @@ public final class WizardrySummonTweaksMod {
         if (melee != null) {
             MinecraftForge.EVENT_BUS.unregister(melee);
             melee = null;
+        }
+        if (rewards != null) {
+            MinecraftForge.EVENT_BUS.unregister(rewards);
+            rewards = null;
         }
         targets = null;
         combat = null;

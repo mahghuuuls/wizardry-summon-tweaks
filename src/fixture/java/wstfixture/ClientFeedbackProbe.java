@@ -48,7 +48,7 @@ final class ClientFeedbackProbe {
         output("MELEE_FEEDBACK_CONTROL packets=" + packets);
     }
 
-    private static Set<String> capture(EntityPlayerMP player, Runnable action) {
+    static Set<String> capture(EntityPlayerMP player, Runnable action) {
         Channel channel = player.connection.getNetworkManager().channel();
         Set<String> observed = new ConcurrentSkipListSet<>();
         ChannelOutboundHandlerAdapter observer = new ChannelOutboundHandlerAdapter() {
