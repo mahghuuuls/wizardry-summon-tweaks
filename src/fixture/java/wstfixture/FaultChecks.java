@@ -22,7 +22,7 @@ public final class FaultChecks {
             @Override public boolean matches(Entity entity) {
                 return entity.getUniqueID().equals(bad.getUniqueID()) || entity == good;
             }
-            @Override public SummonFacts observe(Entity entity) {
+            @Override public SummonFacts observe(Entity entity, SummonFacts saved) {
                 if (entity.getUniqueID().equals(bad.getUniqueID())) {
                     failures[0]++;
                     throw new IllegalStateException("intentional fixture observation failure");

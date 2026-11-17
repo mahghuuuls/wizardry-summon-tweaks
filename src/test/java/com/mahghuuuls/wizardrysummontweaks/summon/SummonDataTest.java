@@ -6,10 +6,57 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 import static com.mahghuuuls.wizardrysummontweaks.summon.SummonFacts.OwnerKind.*;
 
 class SummonDataTest {
+    @Test void exactSpawnExposesEachOriginDuringOneOperationAndPersistsSuccessfulSpawns() {
+        for (String spell : new String[]{"summon_snow_golem", "summon_spirit_wolf", "summon_spirit_horse"}) {
+            NBTTagCompound data = new NBTTagCompound();
+            SummonFacts facts = new SummonFacts("ebwizardry:" + spell, UUID.randomUUID(), PLAYER, "exact_spell_caster");
+            AtomicInteger attempts = new AtomicInteger();
+            assertTrue(SummonData.captureSpawn(data, facts, () -> {
+                attempts.incrementAndGet();
+                SummonFacts.Result visible = SummonData.evaluate(data, null);
+                assertEquals(facts.originProvider, visible.facts.originProvider);
+                assertEquals(facts.ownerUUID, visible.facts.ownerUUID);
+                return true;
+            }));
+            assertEquals(1, attempts.get());
+            SummonFacts.Result result = SummonData.evaluate(data.copy(), null);
+            assertTrue(result.affected());
+            assertEquals("exact_spell_caster", result.reason);
+            assertEquals(1, data.getCompoundTag(SummonData.KEY).getInteger("schema"));
+        }
+    }
+
+    @Test void rejectedOrThrownSpawnRestoresPriorEvidenceAndLeavesOtherDataAlone() {
+        NBTTagCompound data = new NBTTagCompound();
+        SummonFacts facts = new SummonFacts("ebwizardry:summon_snow_golem", UUID.randomUUID(), PLAYER, "exact_spell_caster");
+        AtomicInteger attempts = new AtomicInteger();
+        assertFalse(SummonData.captureSpawn(data, facts, () -> {
+            attempts.incrementAndGet();
+            assertTrue(SummonData.evaluate(data, null).affected());
+            data.setInteger("other_mod", 7);
+            return false;
+        }));
+        assertEquals(1, attempts.get());
+        assertFalse(data.hasKey(SummonData.KEY));
+        assertEquals(7, data.getInteger("other_mod"));
+
+        SummonFacts earlier = new SummonFacts(facts.originProvider, UUID.randomUUID(), PLAYER, "previous");
+        SummonData.remember(data, SummonData.evaluate(data, earlier));
+        NBTTagCompound before = data.copy();
+        IllegalStateException providerFailure = new IllegalStateException("native spawn failed");
+        assertSame(providerFailure, assertThrows(IllegalStateException.class, () ->
+                SummonData.captureSpawn(data, facts, () -> {
+                    assertEquals(facts.ownerUUID, SummonData.evaluate(data, null).facts.ownerUUID);
+                    throw providerFailure;
+                })));
+        assertEquals(before, data);
+    }
+
     @Test void authoritativePlayerRecordCanResolveSavedUnknownOwnerWithoutChangingAnNpcOrBadSchema() {
         UUID owner = UUID.randomUUID();
         NBTTagCompound data = new NBTTagCompound();

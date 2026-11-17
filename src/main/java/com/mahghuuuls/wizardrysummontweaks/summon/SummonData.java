@@ -1,13 +1,17 @@
 package com.mahghuuuls.wizardrysummontweaks.summon;
 
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 /** Owns the private entity compound. Unrecognized bytes are never replaced. */
 public final class SummonData {
     public static final String KEY = "wizardrysummontweaks";
+    private static final SummonFacts.Result MISSING = SummonFacts.reconcile(null, false, null);
+    private static final SummonFacts.Result INVALID = SummonFacts.reconcile(null, true, null);
 
     private SummonData() {}
 
@@ -16,7 +20,12 @@ public final class SummonData {
     }
 
     public static SummonFacts.Result evaluate(NBTTagCompound entityData, SummonFacts observation, Predicate<UUID> knownPlayer) {
-        SummonFacts.Result result = evaluateRecord(entityData, observation);
+        return reconcile(read(entityData), observation, knownPlayer);
+    }
+
+    static SummonFacts.Result reconcile(SummonFacts.Result stored, SummonFacts observation, Predicate<UUID> knownPlayer) {
+        SummonFacts.Result result = observation == null ? stored
+                : SummonFacts.reconcile(stored.facts, !stored.mayPersist, observation);
         SummonFacts facts = result.facts;
         if (result.mayPersist && facts != null && facts.ownerKind == SummonFacts.OwnerKind.UNRESOLVED
                 && facts.ownerUUID != null && knownPlayer.test(facts.ownerUUID)) {
@@ -26,15 +35,15 @@ public final class SummonData {
         return result;
     }
 
-    private static SummonFacts.Result evaluateRecord(NBTTagCompound entityData, SummonFacts observation) {
-        if (!entityData.hasKey(KEY)) return SummonFacts.reconcile(null, false, observation);
-        if (!entityData.hasKey(KEY, 10)) return SummonFacts.reconcile(null, true, observation);
+    static SummonFacts.Result read(NBTTagCompound entityData) {
+        if (entityData == null || !entityData.hasKey(KEY)) return MISSING;
+        if (!entityData.hasKey(KEY, 10)) return INVALID;
         try {
             NBTTagCompound tag = entityData.getCompoundTag(KEY);
             if (!tag.hasKey("schema", 3) || tag.getInteger("schema") != 1
                     || !tag.hasKey("originProvider", 8) || !tag.hasKey("ownerKind", 8)
                     || !tag.hasKey("ownershipEvidence", 8)) {
-                return SummonFacts.reconcile(null, true, observation);
+                return INVALID;
             }
             UUID owner = null;
             if (tag.hasKey("ownerUUID")) {
@@ -44,9 +53,9 @@ public final class SummonData {
             }
             SummonFacts saved = new SummonFacts(tag.getString("originProvider"), owner,
                     SummonFacts.OwnerKind.valueOf(tag.getString("ownerKind")), tag.getString("ownershipEvidence"));
-            return SummonFacts.reconcile(saved, false, observation);
+            return SummonFacts.reconcile(saved, false, null);
         } catch (IllegalArgumentException failure) {
-            return SummonFacts.reconcile(null, true, observation);
+            return INVALID;
         }
     }
 
@@ -66,6 +75,25 @@ public final class SummonData {
         tag.setString("ownershipEvidence", facts.ownershipEvidence);
         if (!entityData.hasKey(KEY, 10) || !tag.equals(entityData.getCompoundTag(KEY))) {
             entityData.setTag(KEY, tag);
+        }
+    }
+
+    /** The join event must read the facts during the call. A rejected spawn retains no new record. */
+    static boolean captureSpawn(NBTTagCompound entityData, SummonFacts facts, BooleanSupplier spawn) {
+        SummonFacts.Result result = evaluate(entityData, facts);
+        if (!result.mayPersist) return spawn.getAsBoolean();
+        NBTBase previous = entityData.getTag(KEY);
+        if (previous != null) previous = previous.copy();
+        remember(entityData, result);
+        boolean added = false;
+        try {
+            added = spawn.getAsBoolean();
+            return added;
+        } finally {
+            if (!added) {
+                if (previous == null) entityData.removeTag(KEY);
+                else entityData.setTag(KEY, previous);
+            }
         }
     }
 }

@@ -58,6 +58,11 @@ public final class IdentityFixture extends CommandBase {
                             .getMethod("run", MinecraftServer.class, ICommandSender.class, String[].class)
                             .invoke(null, server, sender, args);
                     break;
+                case "origins":
+                    Class.forName("wstfixture.OriginChecks")
+                            .getMethod("run", MinecraftServer.class, ICommandSender.class, String[].class)
+                            .invoke(null, server, sender, args);
+                    break;
                 case "load":
                     loadArena(world);
                     output("ARENA_LOADED");

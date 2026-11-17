@@ -7,6 +7,7 @@ import com.mahghuuuls.wizardrysummontweaks.combat.TargetProtection;
 import com.mahghuuuls.wizardrysummontweaks.compat.wizardry.WizardryMeleeSource;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerConfiguration;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerRules;
+import com.mahghuuuls.wizardrysummontweaks.summon.SummonFacts;
 import com.mahghuuuls.wizardrysummontweaks.summon.SummonProvider;
 import com.mahghuuuls.wizardrysummontweaks.summon.SummonTracker;
 import net.minecraft.entity.Entity;
@@ -25,6 +26,7 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
+import java.util.function.BooleanSupplier;
 
 @Mod(
         modid = Tags.MOD_ID,
@@ -56,6 +58,11 @@ public final class WizardrySummonTweaksMod {
 
     public static TargetProtection targetProtection() {
         return instance == null ? null : instance.targets;
+    }
+
+    public static boolean captureSummonSpawn(Entity entity, SummonFacts facts, BooleanSupplier spawn) {
+        SummonTracker tracker = instance == null ? null : instance.tracker;
+        return tracker == null ? spawn.getAsBoolean() : tracker.captureSpawn(entity, facts, spawn);
     }
 
     @Mod.EventHandler

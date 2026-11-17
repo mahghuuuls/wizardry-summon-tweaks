@@ -10,10 +10,12 @@ import java.lang.reflect.Field;
 import java.util.UUID;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.BooleanSupplier;
 
 /** Single authority for live observations, stored evidence and read-only classification. */
 public final class SummonTracker {
-    private static final SummonFacts.Result NO_ORIGIN = SummonFacts.reconcile(null, false, null);
+    private static final SummonFacts.Result UNVERIFIED_ORIGIN =
+            new SummonFacts.Result(null, SummonFacts.Status.UNRESOLVED, "spell_origin_unverified", false);
     // This Forge-added field has no obfuscated vanilla alias. Read it without getEntityData's allocation side effect.
     private static final Field CUSTOM_DATA = ReflectionHelper.findField(Entity.class, "customEntityData");
     private final PlayerIdentities players = new PlayerIdentities();
@@ -53,23 +55,28 @@ public final class SummonTracker {
         NBTTagCompound data = peekData(entity);
         boolean candidate = provider != null && provider.matches(entity);
         if (!candidate && (data == null || !data.hasKey(SummonData.KEY))) return false;
-        SummonFacts.Result result = classify(entity, true);
+        SummonFacts.Result result = classify(entity, data, candidate, true);
         if (result.mayPersist && result.facts != null) SummonData.remember(entity.getEntityData(), result);
         return result.affected();
     }
 
     public SummonFacts.Result inspect(Entity entity) {
-        return classify(entity, false);
+        if (!active) return new SummonFacts.Result(null, SummonFacts.Status.UNRESOLVED, "server_not_active", false);
+        return classify(entity, peekData(entity), provider != null && provider.matches(entity), false);
     }
 
-    private SummonFacts.Result classify(Entity entity, boolean recordFailure) {
-        NBTTagCompound data = peekData(entity);
-        if (!active) return new SummonFacts.Result(null, SummonFacts.Status.UNRESOLVED, "server_not_active", false);
-        if (failedEntities.containsKey(entity)) return failedObservation(data);
+    public boolean captureSpawn(Entity entity, SummonFacts facts, BooleanSupplier spawn) {
+        if (!active || entity.world.isRemote || entity.isAddedToWorld()) return spawn.getAsBoolean();
+        return SummonData.captureSpawn(entity.getEntityData(), facts, spawn);
+    }
+
+    private SummonFacts.Result classify(Entity entity, NBTTagCompound data, boolean candidate, boolean recordFailure) {
+        SummonFacts.Result stored = SummonData.read(data);
+        if (failedEntities.containsKey(entity)) return failedObservation(stored);
         SummonFacts observation = null;
-        if (provider != null && provider.matches(entity)) {
+        if (candidate) {
             try {
-                observation = provider.observe(entity);
+                observation = provider.observe(entity, stored.facts);
             } catch (RuntimeException | LinkageError failure) {
                 if (recordFailure) {
                     failedEntities.put(entity, Boolean.TRUE);
@@ -79,15 +86,15 @@ public final class SummonTracker {
                         failureReported = true;
                     }
                 }
-                return failedObservation(data);
+                return failedObservation(stored);
             }
+            if (observation == null && stored.facts == null && stored.mayPersist) return UNVERIFIED_ORIGIN;
         }
-        return data == null && observation == null ? NO_ORIGIN
-                : SummonData.evaluate(data == null ? new NBTTagCompound() : data, observation, players::isPlayer);
+        return SummonData.reconcile(stored, observation, players::isPlayer);
     }
 
-    private SummonFacts.Result failedObservation(NBTTagCompound data) {
-        SummonFacts.Result saved = SummonData.evaluate(data == null ? new NBTTagCompound() : data, null, players::isPlayer);
+    private SummonFacts.Result failedObservation(SummonFacts.Result stored) {
+        SummonFacts.Result saved = SummonData.reconcile(stored, null, players::isPlayer);
         return new SummonFacts.Result(saved.facts, SummonFacts.Status.UNRESOLVED, "provider_observation_failed", false);
     }
 
