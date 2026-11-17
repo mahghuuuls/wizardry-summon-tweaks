@@ -2,6 +2,7 @@
  * It is advised that you do not edit anything in the build.gradle; unless you are sure of what you are doing
  */
 import com.gtnewhorizons.retrofuturagradle.mcp.InjectTagsTask
+import com.gtnewhorizons.retrofuturagradle.mcp.ReobfuscatedJar
 import net.darkhax.curseforgegradle.TaskPublishCurseForge
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.gradle.ext.Gradle
@@ -402,3 +403,30 @@ if (propertyBool('publish_to_curseforge')) {
 
 apply from: 'gradle/scripts/publishing.gradle'
 apply from: 'gradle/scripts/extra.gradle'
+
+// Explicitly requested packaged-test helper; never part of build/libs or the product JAR.
+sourceSets {
+    fixture {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+}
+def fixtureDevJar = tasks.register('fixtureDevJar', Jar) {
+    from sourceSets.fixture.output
+    archiveBaseName = 'wizardrysummontweaks-fixture'
+    archiveClassifier = 'dev'
+    destinationDirectory = layout.buildDirectory.dir('fixture')
+}
+def mainReobf = tasks.named('reobfJar', ReobfuscatedJar)
+tasks.register('fixtureJar', ReobfuscatedJar) {
+    setInputJarFromTask(fixtureDevJar)
+    archiveBaseName = 'wizardrysummontweaks-fixture'
+    archiveClassifier = ''
+    destinationDirectory = layout.buildDirectory.dir('fixture')
+    mcVersion.set(mainReobf.flatMap { it.mcVersion })
+    srg.set(mainReobf.flatMap { it.srg })
+    fieldCsv.set(mainReobf.flatMap { it.fieldCsv })
+    methodCsv.set(mainReobf.flatMap { it.methodCsv })
+    exceptorCfg.set(mainReobf.flatMap { it.exceptorCfg })
+    recompMcJar.set(mainReobf.flatMap { it.recompMcJar })
+    referenceClasspath.from(mainReobf.map { it.referenceClasspath })
+}

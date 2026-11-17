@@ -41,6 +41,7 @@ dependencies {
 
     // Compile-time APIs stay optional in the game.
     compileOnly rfg.deobf('curse.maven:electroblobs-wizardry-265642:8320066')
+    testImplementation rfg.deobf('curse.maven:electroblobs-wizardry-265642:8320066')
     compileOnly rfg.deobf('curse.maven:wizardryutils-608287:7158305')
     compileOnly rfg.deobf('curse.maven:spell-bundle-559525:8045514')
     compileOnly rfg.deobf('curse.maven:fishs-undead-rising-321139:8253053')
