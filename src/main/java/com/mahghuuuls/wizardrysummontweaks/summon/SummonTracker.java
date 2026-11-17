@@ -13,6 +13,7 @@ import java.util.WeakHashMap;
 
 /** Single authority for live observations, stored evidence and read-only classification. */
 public final class SummonTracker {
+    private static final SummonFacts.Result NO_ORIGIN = SummonFacts.reconcile(null, false, null);
     // This Forge-added field has no obfuscated vanilla alias. Read it without getEntityData's allocation side effect.
     private static final Field CUSTOM_DATA = ReflectionHelper.findField(Entity.class, "customEntityData");
     private final PlayerIdentities players = new PlayerIdentities();
@@ -47,13 +48,14 @@ public final class SummonTracker {
     public void playerJoined(UUID uuid) { if (active) players.joined(uuid); }
     public String providerState() { return providerState + (failedEntities.isEmpty() ? "" : "_with_entity_failures"); }
 
-    public void refresh(Entity entity) {
-        if (!active || entity.world.isRemote) return;
+    public boolean refresh(Entity entity) {
+        if (!active || entity.world.isRemote) return false;
         NBTTagCompound data = peekData(entity);
         boolean candidate = provider != null && provider.matches(entity);
-        if (!candidate && (data == null || !data.hasKey(SummonData.KEY))) return;
+        if (!candidate && (data == null || !data.hasKey(SummonData.KEY))) return false;
         SummonFacts.Result result = classify(entity, true);
         if (result.mayPersist && result.facts != null) SummonData.remember(entity.getEntityData(), result);
+        return result.affected();
     }
 
     public SummonFacts.Result inspect(Entity entity) {
@@ -80,7 +82,8 @@ public final class SummonTracker {
                 return failedObservation(data);
             }
         }
-        return SummonData.evaluate(data == null ? new NBTTagCompound() : data, observation, players::isPlayer);
+        return data == null && observation == null ? NO_ORIGIN
+                : SummonData.evaluate(data == null ? new NBTTagCompound() : data, observation, players::isPlayer);
     }
 
     private SummonFacts.Result failedObservation(NBTTagCompound data) {

@@ -232,7 +232,7 @@ public final class MeleeChecks {
         return enemy;
     }
 
-    private static EntityPlayerMP secondPlayer(MinecraftServer server, WorldServer world)
+    static EntityPlayerMP secondPlayer(MinecraftServer server, WorldServer world)
             throws IllegalAccessException {
         EntityPlayerMP other = new EntityPlayerMP(server, world, new GameProfile(SECOND_PLAYER, "WstOtherMelee"),
                 new PlayerInteractionManager(world));
@@ -247,8 +247,8 @@ public final class MeleeChecks {
         return other;
     }
 
-    private static <T extends EntityLivingBase> T summon(EntityPlayerMP caster, WorldServer world,
-                                                        List<EntityLivingBase> cleanup, String spellId, Class<T> type) {
+    static <T extends EntityLivingBase> T summon(EntityPlayerMP caster, WorldServer world,
+                                                 List<EntityLivingBase> cleanup, String spellId, Class<T> type) {
         Set<Entity> existing = new HashSet<>(world.loadedEntityList);
         Spell spell = Spell.get(spellId);
         require(spell != null && spell.cast(world, caster, EnumHand.MAIN_HAND, 0, new SpellModifiers()), spellId + " native cast failed");

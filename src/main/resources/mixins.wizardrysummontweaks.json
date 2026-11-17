@@ -4,7 +4,7 @@
   "compatibilityLevel": "JAVA_8",
   "package": "com.mahghuuuls.wizardrysummontweaks.mixin",
   "refmap": "mixins.wizardrysummontweaks.refmap.json",
-  "mixins": ["PlayerMeleeMixin"],
+  "mixins": ["PlayerMeleeMixin", "EntityLivingTargetMixin", "AttackTargetAccessor"],
   "client": [],
   "server": []
 }

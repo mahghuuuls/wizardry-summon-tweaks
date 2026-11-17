@@ -1,12 +1,16 @@
 package com.mahghuuuls.wizardrysummontweaks;
 
 import com.mahghuuuls.wizardrysummontweaks.command.InspectCommand;
+import com.mahghuuuls.wizardrysummontweaks.combat.CombatPolicy;
 import com.mahghuuuls.wizardrysummontweaks.combat.MeleeProtection;
+import com.mahghuuuls.wizardrysummontweaks.combat.TargetProtection;
 import com.mahghuuuls.wizardrysummontweaks.compat.wizardry.WizardryMeleeSource;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerConfiguration;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerRules;
 import com.mahghuuuls.wizardrysummontweaks.summon.SummonProvider;
 import com.mahghuuuls.wizardrysummontweaks.summon.SummonTracker;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLiving;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
@@ -38,10 +42,20 @@ public final class WizardrySummonTweaksMod {
     private ServerRules rules = ServerRules.DEFAULTS;
     private SummonTracker tracker;
     private Logger logger;
+    private CombatPolicy combat;
     private MeleeProtection melee;
+    private TargetProtection targets;
+
+    public static CombatPolicy combatPolicy() {
+        return instance == null ? null : instance.combat;
+    }
 
     public static MeleeProtection meleeProtection() {
         return instance == null ? null : instance.melee;
+    }
+
+    public static TargetProtection targetProtection() {
+        return instance == null ? null : instance.targets;
     }
 
     @Mod.EventHandler
@@ -62,7 +76,9 @@ public final class WizardrySummonTweaksMod {
     public void starting(FMLServerStartingEvent event) {
         SummonProvider provider = createProvider();
         tracker.start(event.getServer(), provider);
-        melee = new MeleeProtection(rules, tracker, provider == null ? source -> null : WizardryMeleeSource::actor);
+        combat = new CombatPolicy(rules, tracker);
+        targets = new TargetProtection(combat);
+        melee = new MeleeProtection(combat, provider == null ? source -> null : WizardryMeleeSource::actor);
         MinecraftForge.EVENT_BUS.register(melee);
         event.registerServerCommand(new InspectCommand(tracker, () -> rules));
     }
@@ -80,12 +96,18 @@ public final class WizardrySummonTweaksMod {
 
     @SubscribeEvent
     public void joined(EntityJoinWorldEvent event) {
-        if (!event.getWorld().isRemote) tracker.refresh(event.getEntity());
+        if (!event.getWorld().isRemote) refreshAndClearTarget(event.getEntity());
     }
 
     @SubscribeEvent
     public void livingUpdate(LivingEvent.LivingUpdateEvent event) {
-        tracker.refresh(event.getEntityLiving());
+        refreshAndClearTarget(event.getEntityLiving());
+    }
+
+    private void refreshAndClearTarget(Entity entity) {
+        if (tracker.refresh(entity) && targets != null && entity instanceof EntityLiving) {
+            targets.clearForbidden((EntityLiving) entity);
+        }
     }
 
     @SubscribeEvent
@@ -99,6 +121,8 @@ public final class WizardrySummonTweaksMod {
             MinecraftForge.EVENT_BUS.unregister(melee);
             melee = null;
         }
+        targets = null;
+        combat = null;
         tracker.stop();
         rules = ServerRules.DEFAULTS;
     }
