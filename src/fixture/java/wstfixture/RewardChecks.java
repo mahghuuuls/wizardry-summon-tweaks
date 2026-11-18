@@ -119,17 +119,25 @@ public final class RewardChecks {
                         action = this::killAsPlayer;
                     }
                     break;
-                case "enemy-killed-by-summon": {
-                    victim = new EntityZombie(world);
-                    giveBoots(victim, "enemy-supplied");
-                    add(victim, 24.5);
+                case "enemy-killed-by-summon":
+                case "affected-killed-by-summon": {
+                    boolean affectedVictim = name.equals("affected-killed-by-summon");
+                    if (affectedVictim) {
+                        victim = reward(player.getUniqueID());
+                    } else {
+                        victim = new EntityZombie(world);
+                        add(victim, 24.5);
+                    }
+                    giveBoots(victim, affectedVictim ? "affected-supplied" : "enemy-supplied");
                     List<EntityLivingBase> summoned = new ArrayList<>();
                     attacker = MeleeChecks.summon(player, world, summoned, "ebwizardry:summon_zombie", EntityZombie.class);
                     entities.addAll(summoned);
                     place(attacker, 22.5);
                     attacker.getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(100);
-                    classification = "EXCLUDED";
-                    affected = false;
+                    if (!affectedVictim) {
+                        classification = "EXCLUDED";
+                        affected = false;
+                    }
                     action = () -> attacker.attackEntityAsMob(victim);
                     break;
                 }
@@ -283,10 +291,14 @@ public final class RewardChecks {
                     || name.equals("picked-gear") || name.equals("npc-victim") || name.equals("unresolved-victim")) {
                 require(trace.xpInput == 7, name + " did not reach the native positive fixture XP boundary");
             }
-            if (name.equals("enemy-killed-by-summon")) {
+            if (name.equals("enemy-killed-by-summon") || name.equals("affected-killed-by-summon")) {
                 require(attacker.getUniqueID().equals(trace.actor) && player.getUniqueID().equals(trace.credit)
                         && player.getUniqueID().equals(trace.xpCredit) && trace.xpInput > 0,
                         "native summon kill lost the original actor or credit");
+            }
+            if (name.equals("affected-killed-by-summon")) {
+                require(trace.xpInput == 7 && trace.itemInput.containsKey("minecraft:golden_boots|affected-supplied"),
+                        "The affected death did not reach both positive reward inputs");
             }
             if (name.equals("native-snow") || name.equals("native-snow-mob") || name.equals("enemy-killed-by-summon")
                     || name.equals("supplied-gear")) {
