@@ -390,7 +390,7 @@ public final class FishChecks {
         return created;
     }
 
-    private static void nativeWand(WorldServer world, EntityPlayerMP player) {
+    static void nativeWand(WorldServer world, EntityPlayerMP player) {
         ItemStack wand = new ItemStack(FishItems.SLUDGE_WAND);
         wand.addEnchantment(Enchantments.FIRE_ASPECT, 2);
         wand.addEnchantment(Enchantments.KNOCKBACK, 1);
@@ -402,7 +402,7 @@ public final class FishChecks {
                 "The original staff result, returned stack or durability cost changed");
     }
 
-    private static List<EntityLilSludge> spawnedSince(WorldServer world, Set<Entity> existing, List<EntityLiving> cleanup) {
+    static List<EntityLilSludge> spawnedSince(WorldServer world, Set<Entity> existing, List<EntityLiving> cleanup) {
         List<EntityLilSludge> added = new ArrayList<>();
         for (Entity entity : world.loadedEntityList) {
             if (existing.contains(entity) || !(entity instanceof EntityLilSludge)) continue;

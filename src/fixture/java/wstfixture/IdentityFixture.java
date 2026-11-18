@@ -22,6 +22,7 @@ import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import org.apache.logging.log4j.LogManager;
 
 import java.nio.charset.StandardCharsets;
@@ -31,11 +32,21 @@ import java.nio.file.Paths;
 import java.util.UUID;
 
 /** Native actions inspect source state; fault injection separately exercises the tracker component. */
-@Mod(modid = "wstfixture", name = "WST Identity Test Fixture", version = "1.0", acceptableRemoteVersions = "*")
+@Mod(modid = "wstfixture", name = "WST Identity Test Fixture", version = "1.0",
+        acceptableRemoteVersions = "*", dependencies = "after:wizardrysummontweaks")
 public final class IdentityFixture extends CommandBase {
     public static final UUID SECOND_PLAYER = UUID.nameUUIDFromBytes("wst-second-player".getBytes(StandardCharsets.UTF_8));
+    static Runnable afterServerStop;
 
     @Mod.EventHandler public void starting(FMLServerStartingEvent event) { event.registerServerCommand(this); }
+
+    @Mod.EventHandler
+    public void stopped(FMLServerStoppedEvent event) {
+        Runnable observer = afterServerStop;
+        afterServerStop = null;
+        if (observer != null) observer.run();
+    }
+
     @Override public String getName() { return "wstfixture"; }
     @Override public String getUsage(ICommandSender sender) { return "wstfixture <case> [args]"; }
     @Override public int getRequiredPermissionLevel() { return 2; }
@@ -95,6 +106,21 @@ public final class IdentityFixture extends CommandBase {
                     break;
                 case "authority":
                     Class.forName("wstfixture.AuthorityChecks")
+                            .getMethod("run", MinecraftServer.class, ICommandSender.class, String[].class)
+                            .invoke(null, server, sender, args);
+                    break;
+                case "benchmark":
+                    Class.forName("wstfixture.BenchmarkChecks")
+                            .getMethod("run", MinecraftServer.class, ICommandSender.class, String[].class)
+                            .invoke(null, server, sender, args);
+                    break;
+                case "qualification":
+                    Class.forName("wstfixture.QualificationChecks")
+                            .getMethod("run", MinecraftServer.class, ICommandSender.class, String[].class)
+                            .invoke(null, server, sender, args);
+                    break;
+                case "pack":
+                    Class.forName("wstfixture.PackChecks")
                             .getMethod("run", MinecraftServer.class, ICommandSender.class, String[].class)
                             .invoke(null, server, sender, args);
                     break;
