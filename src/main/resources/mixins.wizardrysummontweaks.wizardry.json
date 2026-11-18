@@ -3,5 +3,8 @@
   "minVersion": "0.8.7",
   "compatibilityLevel": "JAVA_8",
   "package": "com.mahghuuuls.wizardrysummontweaks.compat.wizardrymixin",
-  "mixins": ["WizardryMeleeMixin", "WizardryTargetsMixin", "WizardryExactSpawnMixin", "IndirectMinionAccessor"]
+  "mixins": [
+    "WizardryMeleeMixin", "WizardryTargetsMixin", "WizardryExactSpawnMixin", "IndirectMinionAccessor",
+    "WizardryFirestormMixin", "WizardryParalysisMixin", "WizardryStormcloudMixin"
+  ]
 }

@@ -19,11 +19,14 @@ import java.util.function.Function;
 public final class AttackProtection {
     private final CombatPolicy policy;
     private final Function<DamageSource, Entity> wrappedActor;
+    private final Function<DamageSource, Entity> spellCaster;
     private final ProjectileAttribution projectiles;
 
-    public AttackProtection(CombatPolicy policy, SummonTracker tracker, Function<DamageSource, Entity> wrappedActor) {
+    public AttackProtection(CombatPolicy policy, SummonTracker tracker, Function<DamageSource, Entity> wrappedActor,
+                            Function<DamageSource, Entity> spellCaster) {
         this.policy = policy;
         this.wrappedActor = wrappedActor;
+        this.spellCaster = spellCaster;
         projectiles = new ProjectileAttribution(tracker);
     }
 
@@ -43,7 +46,8 @@ public final class AttackProtection {
             blocked = projectile.world == victim.world
                     && blocksProjectileVictim(projectiles.resolve(projectile, wrappedActor.apply(source)), victim);
         } else {
-            blocked = policy.blocksPair(MeleeSource.actor(source, wrappedActor), victim);
+            Entity actor = MeleeSource.actor(source, wrappedActor);
+            blocked = policy.blocksPair(actor == null ? spellCaster.apply(source) : actor, victim);
         }
         if (!blocked) return false;
         event.setCanceled(true);

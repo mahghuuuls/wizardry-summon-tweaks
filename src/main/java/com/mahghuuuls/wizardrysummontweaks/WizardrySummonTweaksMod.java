@@ -6,6 +6,7 @@ import com.mahghuuuls.wizardrysummontweaks.combat.DeathRewards;
 import com.mahghuuuls.wizardrysummontweaks.combat.AttackProtection;
 import com.mahghuuuls.wizardrysummontweaks.combat.TargetProtection;
 import com.mahghuuuls.wizardrysummontweaks.compat.wizardry.WizardryMeleeSource;
+import com.mahghuuuls.wizardrysummontweaks.compat.wizardry.WizardrySpellSource;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerConfiguration;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerRules;
 import com.mahghuuuls.wizardrysummontweaks.summon.SummonFacts;
@@ -87,7 +88,8 @@ public final class WizardrySummonTweaksMod {
         tracker.start(event.getServer(), provider);
         combat = new CombatPolicy(rules, tracker);
         targets = new TargetProtection(combat);
-        attacks = new AttackProtection(combat, tracker, provider == null ? source -> null : WizardryMeleeSource::actor);
+        attacks = new AttackProtection(combat, tracker, provider == null ? source -> null : WizardryMeleeSource::actor,
+                provider == null ? source -> null : WizardrySpellSource::caster);
         rewards = new DeathRewards(rules, tracker);
         MinecraftForge.EVENT_BUS.register(attacks);
         MinecraftForge.EVENT_BUS.register(rewards);

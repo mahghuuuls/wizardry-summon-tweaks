@@ -615,14 +615,14 @@ public final class ProjectileChecks {
         entity.motionX = entity.motionY = entity.motionZ = 0;
     }
 
-    private static void equipPlayer(EntityPlayerMP player, double x) throws IllegalAccessException {
+    static void equipPlayer(EntityPlayerMP player, double x) throws IllegalAccessException {
         player.setGameType(GameType.SURVIVAL);
         RESPAWN_IMMUNITY.setInt(player, 0);
         player.connection.setPlayerLocation(x, 4, LANE, -90, 0);
         reset(player);
     }
 
-    private static void floor(WorldServer world, int from, int to) {
+    static void floor(WorldServer world, int from, int to) {
         for (int x = from; x <= to; x++) {
             for (int z = 2; z <= 10; z++) world.setBlockState(new BlockPos(x, 3, z), Blocks.STONE.getDefaultState());
             for (int y = 4; y <= 8; y++) for (int z = 5; z <= 7; z++) world.setBlockToAir(new BlockPos(x, y, z));
