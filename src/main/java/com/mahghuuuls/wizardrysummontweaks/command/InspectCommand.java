@@ -1,5 +1,6 @@
 package com.mahghuuuls.wizardrysummontweaks.command;
 
+import com.mahghuuuls.wizardrysummontweaks.combat.AttackProtection;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerRules;
 import com.mahghuuuls.wizardrysummontweaks.summon.SummonFacts;
 import com.mahghuuuls.wizardrysummontweaks.summon.SummonTracker;
@@ -26,10 +27,12 @@ import java.util.function.Supplier;
 public final class InspectCommand extends CommandBase {
     private final SummonTracker tracker;
     private final Supplier<ServerRules> rules;
+    private final AttackProtection attacks;
 
-    public InspectCommand(SummonTracker tracker, Supplier<ServerRules> rules) {
+    public InspectCommand(SummonTracker tracker, Supplier<ServerRules> rules, AttackProtection attacks) {
         this.tracker = tracker;
         this.rules = rules;
+        this.attacks = attacks;
     }
 
     @Override public String getName() { return "wizardrysummontweaks"; }
@@ -56,6 +59,8 @@ public final class InspectCommand extends CommandBase {
             owner = facts.ownerKind + " uuid=" + facts.ownerUUID + " name=" + (profile == null ? "unknown" : profile.getName());
         }
         sender.sendMessage(new TextComponentString("Owner=" + owner));
+        String projectile = attacks.describeProjectile(entity);
+        if (projectile != null) sender.sendMessage(new TextComponentString(projectile));
         ServerRules active = rules.get();
         sender.sendMessage(new TextComponentString("suppressSummonDrops=" + active.suppressSummonDrops
                 + " applicable=" + (active.suppressSummonDrops && result.affected())

@@ -24,13 +24,15 @@ public final class CombatPolicy {
 
     public boolean blocksPair(Entity actor, Entity victim) {
         if (actor == null || actor.world != victim.world || victim.world.isRemote) return false;
-        boolean actorPlayer = actor instanceof EntityPlayer;
-        boolean victimPlayer = victim instanceof EntityPlayer;
-        if (actorPlayer == victimPlayer) return false;
-        if (actorPlayer) {
+        if (actor instanceof EntityPlayer) return blocksPair(Participant.PLAYER, victim);
+        return victim instanceof EntityPlayer && protectsPlayerFrom(actor);
+    }
+
+    boolean blocksPair(Participant actor, Entity victim) {
+        if (actor == Participant.PLAYER && !(victim instanceof EntityPlayer)) {
             return blocks(rules, Participant.PLAYER, Participant.AFFECTED_SUMMON) && tracker.inspect(victim).affected();
         }
-        return protectsPlayerFrom(actor);
+        return victim instanceof EntityPlayer && blocks(rules, actor, Participant.PLAYER);
     }
 
     public boolean blocksPlayerTarget(EntityLiving actor, Entity candidate) {

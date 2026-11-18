@@ -3,7 +3,7 @@ package com.mahghuuuls.wizardrysummontweaks;
 import com.mahghuuuls.wizardrysummontweaks.command.InspectCommand;
 import com.mahghuuuls.wizardrysummontweaks.combat.CombatPolicy;
 import com.mahghuuuls.wizardrysummontweaks.combat.DeathRewards;
-import com.mahghuuuls.wizardrysummontweaks.combat.MeleeProtection;
+import com.mahghuuuls.wizardrysummontweaks.combat.AttackProtection;
 import com.mahghuuuls.wizardrysummontweaks.combat.TargetProtection;
 import com.mahghuuuls.wizardrysummontweaks.compat.wizardry.WizardryMeleeSource;
 import com.mahghuuuls.wizardrysummontweaks.config.ServerConfiguration;
@@ -46,7 +46,7 @@ public final class WizardrySummonTweaksMod {
     private SummonTracker tracker;
     private Logger logger;
     private CombatPolicy combat;
-    private MeleeProtection melee;
+    private AttackProtection attacks;
     private DeathRewards rewards;
     private TargetProtection targets;
 
@@ -54,8 +54,8 @@ public final class WizardrySummonTweaksMod {
         return instance == null ? null : instance.combat;
     }
 
-    public static MeleeProtection meleeProtection() {
-        return instance == null ? null : instance.melee;
+    public static AttackProtection attackProtection() {
+        return instance == null ? null : instance.attacks;
     }
 
     public static TargetProtection targetProtection() {
@@ -87,11 +87,11 @@ public final class WizardrySummonTweaksMod {
         tracker.start(event.getServer(), provider);
         combat = new CombatPolicy(rules, tracker);
         targets = new TargetProtection(combat);
-        melee = new MeleeProtection(combat, provider == null ? source -> null : WizardryMeleeSource::actor);
+        attacks = new AttackProtection(combat, tracker, provider == null ? source -> null : WizardryMeleeSource::actor);
         rewards = new DeathRewards(rules, tracker);
-        MinecraftForge.EVENT_BUS.register(melee);
+        MinecraftForge.EVENT_BUS.register(attacks);
         MinecraftForge.EVENT_BUS.register(rewards);
-        event.registerServerCommand(new InspectCommand(tracker, () -> rules));
+        event.registerServerCommand(new InspectCommand(tracker, () -> rules, attacks));
     }
 
     private SummonProvider createProvider() {
@@ -128,9 +128,9 @@ public final class WizardrySummonTweaksMod {
 
     @Mod.EventHandler
     public void stopped(FMLServerStoppedEvent event) {
-        if (melee != null) {
-            MinecraftForge.EVENT_BUS.unregister(melee);
-            melee = null;
+        if (attacks != null) {
+            MinecraftForge.EVENT_BUS.unregister(attacks);
+            attacks = null;
         }
         if (rewards != null) {
             MinecraftForge.EVENT_BUS.unregister(rewards);

@@ -3,10 +3,8 @@ package com.mahghuuuls.wizardrysummontweaks.summon;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
-import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import org.apache.logging.log4j.Logger;
 
-import java.lang.reflect.Field;
 import java.util.UUID;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -16,8 +14,6 @@ import java.util.function.BooleanSupplier;
 public final class SummonTracker {
     private static final SummonFacts.Result UNVERIFIED_ORIGIN =
             new SummonFacts.Result(null, SummonFacts.Status.UNRESOLVED, "spell_origin_unverified", false);
-    // This Forge-added field has no obfuscated vanilla alias. Read it without getEntityData's allocation side effect.
-    private static final Field CUSTOM_DATA = ReflectionHelper.findField(Entity.class, "customEntityData");
     private final PlayerIdentities players = new PlayerIdentities();
     private final Logger logger;
     // A failed loaded instance is retried only after reload; weak keys retain neither entities nor worlds.
@@ -52,7 +48,7 @@ public final class SummonTracker {
 
     public boolean refresh(Entity entity) {
         if (!active || entity.world.isRemote) return false;
-        NBTTagCompound data = peekData(entity);
+        NBTTagCompound data = SummonData.peek(entity);
         boolean candidate = provider != null && provider.matches(entity);
         if (!candidate && (data == null || !data.hasKey(SummonData.KEY))) return false;
         SummonFacts.Result result = classify(entity, data, candidate, true);
@@ -62,7 +58,7 @@ public final class SummonTracker {
 
     public SummonFacts.Result inspect(Entity entity) {
         if (!active) return new SummonFacts.Result(null, SummonFacts.Status.UNRESOLVED, "server_not_active", false);
-        return classify(entity, peekData(entity), provider != null && provider.matches(entity), false);
+        return classify(entity, SummonData.peek(entity), provider != null && provider.matches(entity), false);
     }
 
     public boolean captureSpawn(Entity entity, SummonFacts facts, BooleanSupplier spawn) {
@@ -98,8 +94,4 @@ public final class SummonTracker {
         return new SummonFacts.Result(saved.facts, SummonFacts.Status.UNRESOLVED, "provider_observation_failed", false);
     }
 
-    private static NBTTagCompound peekData(Entity entity) {
-        try { return (NBTTagCompound) CUSTOM_DATA.get(entity); }
-        catch (IllegalAccessException failure) { throw new IllegalStateException("Cannot read Forge custom entity data", failure); }
-    }
 }

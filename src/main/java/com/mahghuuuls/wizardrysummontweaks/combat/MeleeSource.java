@@ -15,7 +15,10 @@ final class MeleeSource {
         if (!(source instanceof EntityDamageSource) || source.isProjectile() || source.isExplosion()) return null;
         // Wizardry also wraps Thorns and retains the original damage type.
         if (!"player".equals(source.damageType) && !"mob".equals(source.damageType)) return null;
-        if (source instanceof EntityDamageSourceIndirect) return wrappedActor.apply(source);
+        if (source instanceof EntityDamageSourceIndirect) {
+            Entity immediate = source.getImmediateSource();
+            return immediate == wrappedActor.apply(source) ? immediate : null;
+        }
         return source.getTrueSource();
     }
 }

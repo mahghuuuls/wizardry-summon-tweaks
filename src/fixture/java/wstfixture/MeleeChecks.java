@@ -356,16 +356,25 @@ public final class MeleeChecks {
 
     private static void withOrder(EntityZombie minion, EntityPlayerMP target, boolean wizardryFirst,
                                   boolean blocked) throws Exception {
+        withAttackOrder(new LivingAttackEvent(target, DamageSource.causeMobDamage(minion), 8), wizardryFirst, () -> {
+            expectProviderDamage(wizardryFirst ? "wizardry-first" : "protection-first", minion, target, target, blocked);
+            output("MELEE_ORDER_PASS wizardryFirst=" + wizardryFirst + " protected=" + blocked);
+        });
+    }
+
+    @FunctionalInterface
+    interface AttackAction { void run() throws Exception; }
+
+    static void withAttackOrder(LivingAttackEvent event, boolean wizardryFirst, AttackAction action) throws Exception {
         int bus = BUS_ID.getInt(MinecraftForge.EVENT_BUS);
-        ListenerList list = new LivingAttackEvent(target, DamageSource.causeMobDamage(minion), 8).getListenerList();
+        ListenerList list = event.getListenerList();
         IEventListener wizardry = find(list, bus, "ISummonedCreature onLivingAttackEvent");
-        IEventListener mod = find(list, bus, "combat.MeleeProtection@", " onLivingAttack");
+        IEventListener mod = find(list, bus, "combat.AttackProtection@", " onLivingAttack");
         boolean original = index(list, bus, wizardry) < index(list, bus, mod);
         arrange(list, bus, wizardry, mod, wizardryFirst);
         try {
             require((index(list, bus, wizardry) < index(list, bus, mod)) == wizardryFirst, "actual bus order did not change");
-            expectProviderDamage(wizardryFirst ? "wizardry-first" : "protection-first", minion, target, target, blocked);
-            output("MELEE_ORDER_PASS wizardryFirst=" + wizardryFirst + " protected=" + blocked);
+            action.run();
         } finally {
             arrange(list, bus, wizardry, mod, original);
         }
