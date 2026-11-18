@@ -28,6 +28,8 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 @Mod(
@@ -37,6 +39,7 @@ import java.util.function.BooleanSupplier;
         acceptedMinecraftVersions = "[1.12.2]",
         acceptableRemoteVersions = "*",
         dependencies = "required-after:forge@[14.23.5.2847,);required-after:mixinbooter@[12.1,);after:ebwizardry@[4.3.19,)"
+                + ";after:wizardryutils@[1.3.0,);after:spellbundle@[1.12.2-1.7.4,)"
 )
 public final class WizardrySummonTweaksMod {
     @Mod.Instance(Tags.MOD_ID)
@@ -84,26 +87,32 @@ public final class WizardrySummonTweaksMod {
 
     @Mod.EventHandler
     public void starting(FMLServerStartingEvent event) {
-        SummonProvider provider = createProvider();
-        tracker.start(event.getServer(), provider);
+        Map<String, SummonProvider> providers = new LinkedHashMap<>();
+        addProvider(providers, "ebwizardry", "wizardry.WizardrySummonProvider");
+        addProvider(providers, "wizardryutils", "wizardryutils.WizardryUtilsSummonProvider");
+        addProvider(providers, "spellbundle", "spellbundle.SpellBundleSummonProvider");
+        tracker.start(event.getServer(), providers);
+        boolean wizardry = providers.containsKey("ebwizardry");
         combat = new CombatPolicy(rules, tracker);
         targets = new TargetProtection(combat);
-        attacks = new AttackProtection(combat, tracker, provider == null ? source -> null : WizardryMeleeSource::actor,
-                provider == null ? source -> null : WizardrySpellSource::caster);
+        attacks = new AttackProtection(combat, tracker, wizardry ? WizardryMeleeSource::actor : source -> null,
+                wizardry ? WizardrySpellSource::caster : source -> null);
         rewards = new DeathRewards(rules, tracker);
         MinecraftForge.EVENT_BUS.register(attacks);
         MinecraftForge.EVENT_BUS.register(rewards);
         event.registerServerCommand(new InspectCommand(tracker, () -> rules, attacks));
     }
 
-    private SummonProvider createProvider() {
-        if (!Loader.isModLoaded("ebwizardry")) return null;
+    private static void addProvider(Map<String, SummonProvider> providers, String modId, String className) {
+        if (!Loader.isModLoaded(modId)) return;
         try {
             // Defer verification/loading of optional API descriptors until the provider is present.
-            return (SummonProvider) Class.forName("com.mahghuuuls.wizardrysummontweaks.compat.wizardry.WizardrySummonProvider")
+            SummonProvider provider = (SummonProvider) Class.forName(WizardrySummonTweaksMod.class.getPackage().getName()
+                            + ".compat." + className)
                     .getDeclaredConstructor().newInstance();
+            providers.put(modId, provider);
         } catch (ReflectiveOperationException | LinkageError failure) {
-            throw new IllegalStateException("Cannot initialize the installed Wizardry summon provider", failure);
+            throw new IllegalStateException("Cannot initialize the installed summon provider " + modId, failure);
         }
     }
 

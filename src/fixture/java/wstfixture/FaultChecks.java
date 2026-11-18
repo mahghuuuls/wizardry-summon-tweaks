@@ -9,6 +9,9 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 
+import java.util.Collections;
+import java.util.Map;
+
 import static wstfixture.IdentityFixture.*;
 
 /** Component fault injection in a real server; this does not establish native spell provenance. */
@@ -31,13 +34,14 @@ public final class FaultChecks {
             }
         };
         SummonTracker tracker = new SummonTracker(LogManager.getLogger("WSTFaultFixture"));
-        tracker.start(server, provider);
-        String activeState = tracker.providerState();
+        Map<String, SummonProvider> providers = Collections.singletonMap("fixture_fault", provider);
+        tracker.start(server, providers);
+        String activeState = tracker.providerState("fixture_fault");
         NBTTagCompound before = bad.writeToNBT(new NBTTagCompound()).copy();
         require(tracker.inspect(bad).status == SummonFacts.Status.UNRESOLVED, "failure accepted as established evidence");
         require(tracker.inspect(good).affected(), "failed inspection changed valid entity classification");
         require(tracker.inspect(ordinary).reason.equals("no_verified_spell_origin"), "failure leaked to ordinary control");
-        require(activeState.equals(tracker.providerState()), "inspection changed provider state");
+        require(activeState.equals(tracker.providerState("fixture_fault")), "inspection changed provider state");
         require(before.equals(bad.writeToNBT(new NBTTagCompound())), "inspection wrote entity data");
         tracker.refresh(bad);
         tracker.refresh(bad);
@@ -50,7 +54,7 @@ public final class FaultChecks {
         tracker.inspect(reloaded);
         require(failures[0] == 3, "new loaded instance retained another instance's quarantine");
         tracker.stop();
-        tracker.start(server, provider);
+        tracker.start(server, providers);
         tracker.inspect(bad);
         require(failures[0] == 4, "server reopening retained stale quarantine");
         tracker.stop();

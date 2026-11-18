@@ -270,7 +270,7 @@ public final class MeleeChecks {
         entity.setPosition(x, 4, z);
     }
 
-    private static void preparePlayerAttack(EntityPlayerMP player, Enchantment enchantment) throws IllegalAccessException {
+    static void preparePlayerAttack(EntityPlayerMP player, Enchantment enchantment) throws IllegalAccessException {
         // Set the same full charge a player would get by waiting between attacks.
         ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
         sword.addEnchantment(enchantment, 2);

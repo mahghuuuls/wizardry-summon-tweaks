@@ -13,9 +13,11 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.monster.EntitySnowman;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.world.WorldServer;
 
 import java.util.UUID;
+
+import static com.mahghuuuls.wizardrysummontweaks.summon.SummonProvider.loadedOwner;
+import static com.mahghuuuls.wizardrysummontweaks.summon.SummonProvider.ownerFacts;
 
 public final class WizardrySummonProvider implements SummonProvider {
     private static final String SNOW_GOLEM = "ebwizardry:summon_snow_golem";
@@ -40,7 +42,7 @@ public final class WizardrySummonProvider implements SummonProvider {
     public SummonFacts observe(Entity entity, SummonFacts saved) {
         if (entity instanceof ISummonedCreature) {
             ISummonedCreature creature = (ISummonedCreature) entity;
-            EntityLivingBase caster = loadedCaster(entity, creature.getOwnerId());
+            EntityLivingBase caster = loadedOwner(entity, creature.getOwnerId());
             UUID uuid = availableOwnerId(creature, caster == null ? null : caster.getUniqueID());
             return ownerFacts("ebwizardry:summoned_creature", uuid, caster);
         }
@@ -57,7 +59,7 @@ public final class WizardrySummonProvider implements SummonProvider {
 
     private static SummonFacts observeSpirit(Entity entity, String origin, UUID owner, boolean tamed,
                                             IStoredVariable<UUID> link, SummonFacts saved) {
-        EntityLivingBase caster = tamed ? loadedCaster(entity, owner) : null;
+        EntityLivingBase caster = tamed ? loadedOwner(entity, owner) : null;
         if (saved != null && origin.equals(saved.originProvider)) {
             // Native tame and ownership fields agree when a spirit becomes unowned.
             // The native owner UUID is saved independently of whether the player is online.
@@ -73,25 +75,6 @@ public final class WizardrySummonProvider implements SummonProvider {
         WizardData data = WizardData.get((EntityPlayer) caster);
         if (data == null || !entity.getUniqueID().equals(data.getVariable(link))) return null;
         return new SummonFacts(origin, owner, SummonFacts.OwnerKind.PLAYER, "legacy_wizardry_spell_link");
-    }
-
-    private static EntityLivingBase loadedCaster(Entity entity, UUID rawOwner) {
-        // Wizardry's getCaster scans every loaded entity. Server UUID lookup has the same loaded-world boundary.
-        Entity found = rawOwner == null ? null : ((WorldServer) entity.world).getEntityFromUuid(rawOwner);
-        return found instanceof EntityLivingBase ? (EntityLivingBase) found : null;
-    }
-
-    private static SummonFacts ownerFacts(String origin, UUID uuid, EntityLivingBase caster) {
-        SummonFacts.OwnerKind kind;
-        String evidence;
-        if (caster != null && caster.getUniqueID().equals(uuid)) {
-            kind = caster instanceof EntityPlayer ? SummonFacts.OwnerKind.PLAYER : SummonFacts.OwnerKind.NON_PLAYER;
-            evidence = caster instanceof EntityPlayer ? "live_player_caster" : "live_non_player_caster";
-        } else {
-            kind = SummonFacts.OwnerKind.UNRESOLVED;
-            evidence = uuid == null ? "caster_unavailable" : "owner_kind_unresolved";
-        }
-        return new SummonFacts(origin, uuid, kind, evidence);
     }
 
     static UUID availableOwnerId(ISummonedCreature creature, UUID resolvedCaster) {

@@ -68,7 +68,10 @@ public final class InspectCommand extends CommandBase {
                 + "; protectSummons=" + active.protectSummons + " applicable=" + (active.protectSummons && result.affected())));
         ModContainer threatworks = Loader.instance().getIndexedModList().get("threatworks");
         sender.sendMessage(new TextComponentString("Active values apply until server restart/world reopening. Wizardry adapter="
-                + tracker.providerState() + "; Threatworks=" + (threatworks == null ? "absent" : threatworks.getVersion())
+                + tracker.providerState("ebwizardry")
+                + "; Wizardry Utils adapter=" + tracker.providerState("wizardryutils")
+                + "; Spell Bundle adapter=" + tracker.providerState("spellbundle")
+                + "; Threatworks=" + (threatworks == null ? "absent" : threatworks.getVersion())
                 + "; dedicated Threatworks adapter=none"));
     }
 
