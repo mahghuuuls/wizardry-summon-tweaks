@@ -99,9 +99,9 @@ public final class SpellChecks {
         require(player != null && !player.isDead && player.world == world, "A joined living player is required");
         if ("setup".equals(action)) {
             loadArena(world);
-            ProjectileChecks.floor(world, 0, 48);
+            NativeFixture.floor(world, 0, 48);
             world.setSpawnPoint(new BlockPos(12, 4, 6));
-            ProjectileChecks.equipPlayer(player, 8.5);
+            NativeFixture.equipPlayer(player, 8.5);
             for (String id : Arrays.asList(MAGE, RAY, PARALYSIS, FIRESTORM, STORMCLOUD, HEAL, WITHDRAW)) {
                 output("SPELL_REGISTERED id=" + spell(id).getRegistryName() + " implementation=" + spell(id).getClass().getName());
             }
@@ -160,7 +160,7 @@ public final class SpellChecks {
         }
 
         void prepare() throws Exception {
-            ProjectileChecks.equipPlayer(player, 8.5);
+            NativeFixture.equipPlayer(player, 8.5);
             MinecraftForge.EVENT_BUS.register(this);
             switch (name) {
                 case "ray":
@@ -189,7 +189,7 @@ public final class SpellChecks {
                     break;
                 case "mage":
                     mage = mage(world, player, player, cleanup, 8.5);
-                    ProjectileChecks.equipPlayer(player, 13.5);
+                    NativeFixture.equipPlayer(player, 13.5);
                     front = player;
                     later = ordinary(world, cleanup, 13.5, 6.5);
                     position(later, 14.5, 13.5);
@@ -203,7 +203,7 @@ public final class SpellChecks {
                     require(world.spawnEntity(npc), "NPC caster spawn failed");
                     cleanup.add(npc);
                     mage = mage(world, npc, player, cleanup, 8.5);
-                    ProjectileChecks.equipPlayer(player, 13.5);
+                    NativeFixture.equipPlayer(player, 13.5);
                     front = player;
                     break;
                 }
@@ -298,7 +298,7 @@ public final class SpellChecks {
                     front.ticksExisted = 148;
                     later.ticksExisted = ring ? 143 : 148;
                     cloudInitialLifetime = cloud.lifetime;
-                    ProjectileChecks.equipPlayer(player, 2.5);
+                    NativeFixture.equipPlayer(player, 2.5);
                     output("SPELL_CLOUD uuid=" + id(cloud) + " caster=" + cloud.getOwnerId() + " life=" + cloud.lifetime
                             + " activeArea=" + activeArea + " front=" + id(front) + " later=" + id(later));
                     break;
@@ -321,7 +321,7 @@ public final class SpellChecks {
                         output("SPELL_MAGE_AIM_RESULT case=" + name + " before=" + initialFront + " after=" + aimedPlayer);
                         require(initialFront.loss(aimedPlayer) != protection && !frontAttacks.isEmpty(),
                                 "The aimed mage ray did not reach the required protected player control");
-                        ProjectileChecks.equipPlayer(player, 3.5);
+                        NativeFixture.equipPlayer(player, 3.5);
                         position(later, 13.5, LANE);
                         cast(world, mage, later, RAY);
                         position(later, 13.5, 13.5);
@@ -584,7 +584,7 @@ public final class SpellChecks {
 
     private static void save(WorldServer world, EntityPlayerMP player) throws Exception {
         loadRemote(world);
-        ProjectileChecks.floor(world, 1024, 1036);
+        NativeFixture.floor(world, 1024, 1036);
         EntityLiving saved = mage(world, player, player, new ArrayList<>(), 1024.5);
         require(((ISummonedCreature) saved).getLifetime() > 40, "Mage unavailable for native save");
         Files.write(savePath(world), Arrays.asList(id(saved), id(player)), StandardCharsets.US_ASCII);

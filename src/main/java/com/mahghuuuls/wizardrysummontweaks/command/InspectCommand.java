@@ -71,6 +71,7 @@ public final class InspectCommand extends CommandBase {
                 + tracker.providerState("ebwizardry")
                 + "; Wizardry Utils adapter=" + tracker.providerState("wizardryutils")
                 + "; Spell Bundle adapter=" + tracker.providerState("spellbundle")
+                + "; Fish adapter=" + tracker.providerState("mod_lavacow")
                 + "; Threatworks=" + (threatworks == null ? "absent" : threatworks.getVersion())
                 + "; dedicated Threatworks adapter=none"));
     }

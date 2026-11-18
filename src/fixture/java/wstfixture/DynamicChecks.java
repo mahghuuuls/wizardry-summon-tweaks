@@ -105,7 +105,7 @@ public final class DynamicChecks {
         }
         EntityPlayerMP player = getPlayer(server, sender, args[3]);
         boolean enabled = Boolean.parseBoolean(args[2]);
-        ProjectileChecks.equipPlayer(player, 8.5);
+        NativeFixture.equipPlayer(player, 8.5);
         List<EntityLiving> cleanup = new ArrayList<>();
         try {
             switch (action) {
@@ -147,7 +147,7 @@ public final class DynamicChecks {
 
     private static void setup(WorldServer world) {
         loadArena(world);
-        ProjectileChecks.floor(world, 2, 40);
+        NativeFixture.floor(world, 2, 40);
         Class<? extends Entity> actor = EntityList.getClass(FOXHOUND);
         require(actor != null && "vazkii.quark.world.entity.EntityFoxhound".equals(actor.getName()), "Native Foxhound registry absent");
         Spell fox = spell(FOX_SPELL);
@@ -202,7 +202,7 @@ public final class DynamicChecks {
         Method accessor = data.getClass().getDeclaredMethod("getTargetSelector");
         accessor.setAccessible(true);
         Predicate<Entity> selector = (Predicate<Entity>) accessor.invoke(data);
-        EntityPlayerMP player = MeleeChecks.secondPlayer(world.getMinecraftServer(), world);
+        EntityPlayerMP player = NativeFixture.secondPlayer(world.getMinecraftServer(), world);
         EntityZombie enemy = new EntityZombie(world);
         try {
             boolean allowsPlayer = selector.apply(player);
@@ -236,8 +236,8 @@ public final class DynamicChecks {
         EntityWolf fox = fox(world, player, player, cleanup, 11.5);
         inspect(world.getMinecraftServer(), world.getMinecraftServer(), fox, "AFFECTED");
         requireOrigin(fox, UTILS_ORIGIN, player.getUniqueID(), "PLAYER");
-        EntityPlayerMP other = MeleeChecks.secondPlayer(world.getMinecraftServer(), world);
-        ProjectileChecks.equipPlayer(other, 13.5);
+        EntityPlayerMP other = NativeFixture.secondPlayer(world.getMinecraftServer(), world);
+        NativeFixture.equipPlayer(other, 13.5);
         EntityZombie enemy = new EntityZombie(world);
         spawn(world, enemy, cleanup, 14.5);
         EntityWolf peer = fox(world, player, player, cleanup, 15.5);
@@ -275,11 +275,11 @@ public final class DynamicChecks {
             MinecraftServer server = world.getMinecraftServer();
             EntityPlayerMP owner = getPlayer(server, sender, args[3]);
             boolean protect = Boolean.parseBoolean(args[2]);
-            ProjectileChecks.equipPlayer(owner, 8.5);
+            NativeFixture.equipPlayer(owner, 8.5);
             EntityWolf fox = fox(world, owner, owner, new ArrayList<>(), 11.5);
-            EntityPlayerMP other = MeleeChecks.secondPlayer(server, world);
-            ProjectileChecks.equipPlayer(other, 12.5);
-            MeleeChecks.preparePlayerAttack(other, Enchantments.SHARPNESS);
+            EntityPlayerMP other = NativeFixture.secondPlayer(server, world);
+            NativeFixture.equipPlayer(other, 12.5);
+            NativeFixture.preparePlayerAttack(other, Enchantments.SHARPNESS);
             float before = owner.getHealth();
             other.attackTargetEntityWithCurrentItem(owner);
             require(owner.getHealth() < before && owner.getRevengeTarget() == other,
@@ -414,7 +414,7 @@ public final class DynamicChecks {
             Optional<?> bound = (Optional<?>) warp.getMethod("getBoundWaystone", EntityPlayer.class).invoke(null, player);
             require(bound.isPresent(), "Actual Summon Ally cast did not bind its Waystone");
             player.setSneaking(false);
-            ProjectileChecks.equipPlayer(player, 8.5);
+            NativeFixture.equipPlayer(player, 8.5);
             require(pet.posX == 10.5, "Summon Ally bind moved the original pet");
             inspect(world.getMinecraftServer(), world.getMinecraftServer(), pet, "EXCLUDED");
             baubles.setStackInSlot(1, new ItemStack(ring));
@@ -459,7 +459,7 @@ public final class DynamicChecks {
 
     private static void save(WorldServer world, EntityPlayerMP player) throws Exception {
         loadRemote(world);
-        ProjectileChecks.floor(world, 1024, 1036);
+        NativeFixture.floor(world, 1024, 1036);
         EntityWolf fox = fox(world, player, player, new ArrayList<>(), 1024.5);
         requireOrigin(fox, UTILS_ORIGIN, player.getUniqueID(), "PLAYER");
         requireAlternateOwner(world);
@@ -499,7 +499,7 @@ public final class DynamicChecks {
         require(ids.get(2).equals(id(player)) && !owner.equals(player.getUniqueID())
                 && world.getMinecraftServer().getPlayerList().getPlayerByUUID(owner) == null && utils(fox).getCaster() == null,
                 "Restored combat must use the joined non-owner while the current owner stays offline");
-        ProjectileChecks.equipPlayer(player, 1026.5);
+        NativeFixture.equipPlayer(player, 1026.5);
         attack(fox, player, protect, "restored-player", null);
         playerHit(player, fox, protect, "restored-summon");
         output("DY_RESTORE_PASS uuid=" + id(fox) + " offlineOwner=" + owner + " native=" + utils(fox).serializeNBT() + " mark=" + mark(fox));
@@ -553,7 +553,7 @@ public final class DynamicChecks {
         fox.motionX = fox.motionZ = 0;
         fox.setItemStackToSlot(EntityEquipmentSlot.CHEST, new ItemStack(Items.IRON_CHESTPLATE, 1, 11));
         float before = fox.getHealth();
-        MeleeChecks.preparePlayerAttack(player, Enchantments.SHARPNESS);
+        NativeFixture.preparePlayerAttack(player, Enchantments.SHARPNESS);
         player.getHeldItem(EnumHand.MAIN_HAND).addEnchantment(Enchantments.KNOCKBACK, 1);
         player.attackTargetEntityWithCurrentItem(fox);
         double impulse = Math.hypot(fox.motionX, fox.motionZ);
@@ -683,7 +683,7 @@ public final class DynamicChecks {
             owner.setRevengeTarget(null);
             fox.setAttackTarget(null);
             fox.setPositionAndUpdate(11.5, 4, LANE);
-            ProjectileChecks.equipPlayer(other, 12.65);
+            NativeFixture.equipPlayer(other, 12.65);
             require(world.spawnEntity(other), "Native world did not admit the alternate player entity");
             enemy = new EntityZombie(world);
             enemy.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(40);

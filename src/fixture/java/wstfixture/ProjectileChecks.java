@@ -14,7 +14,6 @@ import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.entity.projectile.EntityTippedArrow;
-import net.minecraft.init.Blocks;
 import net.minecraft.init.Enchantments;
 import net.minecraft.init.Items;
 import net.minecraft.init.MobEffects;
@@ -52,13 +51,12 @@ import java.util.Random;
 import java.util.UUID;
 
 import static wstfixture.IdentityFixture.*;
+import static wstfixture.NativeFixture.*;
 
 public final class ProjectileChecks {
     private static final String LAUNCH = "wizardrysummontweaks:launch";
     private static final double LANE = 6.5;
     private static final Field RAW_MINION = ReflectionHelper.findField(IndirectMinionDamage.class, "minion");
-    private static final Field RESPAWN_IMMUNITY = ReflectionHelper.findField(EntityPlayerMP.class,
-            "respawnInvulnerabilityTicks", "field_147101_bU");
     private static final Field THROWER_NAME = ReflectionHelper.findField(net.minecraft.entity.projectile.EntityThrowable.class,
             "throwerName", "field_85053_h");
     private static final Field THROWER = ReflectionHelper.findField(net.minecraft.entity.projectile.EntityThrowable.class,
@@ -182,7 +180,7 @@ public final class ProjectileChecks {
             if ("vanilla-team-bypass".equals(name)) {
                 equipPlayer(player, 12.5);
                 front = player;
-                launcher = MeleeChecks.secondPlayer(world.getMinecraftServer(), world);
+                launcher = NativeFixture.secondPlayer(world.getMinecraftServer(), world);
                 noFriendlyFire = world.getScoreboard().createTeam("wst_no_ff");
                 noFriendlyFire.setAllowFriendlyFire(false);
                 world.getScoreboard().addPlayerToTeam(player.getName(), noFriendlyFire.getName());
@@ -266,7 +264,7 @@ public final class ProjectileChecks {
         }
 
         void arm() {
-            reset(front);
+            resetProjectileVictim(front);
             frontBefore = new State(front);
             if (eligible != null) eligibleBefore = new State(eligible);
             output("PROJECTILE_READY case=" + name + " protected=" + protectedDirection + " caster=" + (player == null ? null : player.getUniqueID())
@@ -413,7 +411,7 @@ public final class ProjectileChecks {
             if (shot != null) shot.setDead();
             for (EntityLivingBase mob : mobs) mob.setDead();
             if (player != null && player.isEntityAlive()) {
-                reset(player);
+                resetProjectileVictim(player);
                 position(player, 3.5);
             }
         }
@@ -486,11 +484,11 @@ public final class ProjectileChecks {
     private static void checkOrder(MinecraftServer server, WorldServer world, EntityPlayerMP owner, boolean protect) throws Exception {
         List<EntityLivingBase> mobs = new ArrayList<>();
         EntitySkeletonMinion minion = skeleton(owner, world, mobs);
-        EntityPlayerMP victim = MeleeChecks.secondPlayer(server, world);
+        EntityPlayerMP victim = NativeFixture.secondPlayer(server, world);
         try {
             for (boolean wizardryFirst : new boolean[]{true, false}) {
                 for (boolean wrapped : new boolean[]{false, true}) {
-                    reset(victim);
+                    resetProjectileVictim(victim);
                     EntityTippedArrow arrow = new EntityTippedArrow(world);
                     if (!wrapped) arrow.shootingEntity = minion;
                     DamageSource source = wrapped ? new IndirectMinionDamage("arrow", arrow, minion, owner, DamageType.MAGIC, false).setProjectile()
@@ -519,7 +517,7 @@ public final class ProjectileChecks {
         position(front, base + 29.5);
         for (EntityLivingBase mob : mobs) if (mob != front) mob.setDead();
         EntityZombie behind = (EntityZombie) enemy(world, new ArrayList<>(), false, base + 31.5);
-        reset(front);
+        resetProjectileVictim(front);
         EntityTippedArrow arrow = spawnArrow(world, player, base + 0.5, 0.36F, false);
         require(arrow.getEntityData().hasKey(LAUNCH) && arrow.motionX > 0.05 && !arrow.isDead, "saved arrow never started active flight");
         Files.write(savePath(world), java.util.Arrays.asList(id(arrow), id(front), id(behind), id(player)), StandardCharsets.US_ASCII);
@@ -602,31 +600,6 @@ public final class ProjectileChecks {
         mobs.add(enemy);
         require(world.spawnEntity(enemy), "eligible target could not join");
         return enemy;
-    }
-
-    private static void reset(EntityLivingBase entity) {
-        entity.clearActivePotions();
-        entity.extinguish();
-        entity.setHealth(entity.getMaxHealth());
-        entity.setAbsorptionAmount(2);
-        entity.hurtResistantTime = 0;
-        entity.setArrowCountInEntity(0);
-        entity.setItemStackToSlot(EntityEquipmentSlot.CHEST, new ItemStack(Items.IRON_CHESTPLATE));
-        entity.motionX = entity.motionY = entity.motionZ = 0;
-    }
-
-    static void equipPlayer(EntityPlayerMP player, double x) throws IllegalAccessException {
-        player.setGameType(GameType.SURVIVAL);
-        RESPAWN_IMMUNITY.setInt(player, 0);
-        player.connection.setPlayerLocation(x, 4, LANE, -90, 0);
-        reset(player);
-    }
-
-    static void floor(WorldServer world, int from, int to) {
-        for (int x = from; x <= to; x++) {
-            for (int z = 2; z <= 10; z++) world.setBlockState(new BlockPos(x, 3, z), Blocks.STONE.getDefaultState());
-            for (int y = 4; y <= 8; y++) for (int z = 5; z <= 7; z++) world.setBlockToAir(new BlockPos(x, y, z));
-        }
     }
 
     private static void position(EntityLivingBase entity, double x) {

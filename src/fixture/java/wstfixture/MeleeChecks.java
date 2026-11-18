@@ -1,6 +1,5 @@
 package wstfixture;
 
-import com.mojang.authlib.GameProfile;
 import electroblob.wizardry.entity.living.ISummonedCreature;
 import electroblob.wizardry.spell.Spell;
 import electroblob.wizardry.util.MinionDamage;
@@ -8,7 +7,6 @@ import electroblob.wizardry.util.MagicDamage.DamageType;
 import electroblob.wizardry.util.SpellModifiers;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
-import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
@@ -21,12 +19,7 @@ import net.minecraft.init.MobEffects;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.EnumPacketDirection;
-import net.minecraft.network.NetHandlerPlayServer;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.network.Packet;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.management.PlayerInteractionManager;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumHand;
 import net.minecraft.world.GameType;
@@ -48,15 +41,14 @@ import java.util.Set;
 import java.util.UUID;
 
 import static wstfixture.IdentityFixture.*;
+import static wstfixture.NativeFixture.clearSpawnImmunity;
+import static wstfixture.NativeFixture.preparePlayerAttack;
+import static wstfixture.NativeFixture.secondPlayer;
 
 /** Exercises the game melee entry points with live entity state and scoped Forge observations. */
 public final class MeleeChecks {
     private static final String CLIENT_TARGET_TAG = "wst_client_melee";
-    private static final Field RESPAWN_IMMUNITY = ReflectionHelper.findField(EntityPlayerMP.class,
-            "respawnInvulnerabilityTicks", "field_147101_bU");
     private static final Field BUS_ID = ReflectionHelper.findField(EventBus.class, "busID");
-    private static final Field MELEE_COOLDOWN = ReflectionHelper.findField(EntityLivingBase.class,
-            "ticksSinceLastSwing", "field_184617_aD");
 
     public static void run(MinecraftServer server, ICommandSender sender, String[] args) throws Exception {
         EntityPlayerMP player = CommandBase.getPlayer(server, sender, args[2]);
@@ -64,7 +56,7 @@ public final class MeleeChecks {
         String caseName = args[1];
         loadArena(world);
         player.setGameType(GameType.SURVIVAL);
-        RESPAWN_IMMUNITY.setInt(player, 0);
+        clearSpawnImmunity(player);
         player.setPositionAndUpdate(0.5, 4.0, 0.5);
         boolean protectPlayers = Boolean.parseBoolean(args[3]);
         boolean protectSummons = Boolean.parseBoolean(args[4]);
@@ -232,21 +224,6 @@ public final class MeleeChecks {
         return enemy;
     }
 
-    static EntityPlayerMP secondPlayer(MinecraftServer server, WorldServer world)
-            throws IllegalAccessException {
-        EntityPlayerMP other = new EntityPlayerMP(server, world, new GameProfile(SECOND_PLAYER, "WstOtherMelee"),
-                new PlayerInteractionManager(world));
-        // Native server player damage and attack methods, with an in-process connection that discards packets.
-        new NetHandlerPlayServer(server, new NetworkManager(EnumPacketDirection.SERVERBOUND), other) {
-            @Override public void sendPacket(Packet<?> packet) {}
-        };
-        other.setGameType(GameType.SURVIVAL);
-        RESPAWN_IMMUNITY.setInt(other, 0);
-        place(other, 0.5, 0.5);
-        // Direct native actions in this server tick do not need a world join or a second socket.
-        return other;
-    }
-
     static <T extends EntityLivingBase> T summon(EntityPlayerMP caster, WorldServer world,
                                                  List<EntityLivingBase> cleanup, String spellId, Class<T> type) {
         Set<Entity> existing = new HashSet<>(world.loadedEntityList);
@@ -268,17 +245,6 @@ public final class MeleeChecks {
 
     private static void place(EntityLivingBase entity, double x, double z) {
         entity.setPosition(x, 4, z);
-    }
-
-    static void preparePlayerAttack(EntityPlayerMP player, Enchantment enchantment) throws IllegalAccessException {
-        // Set the same full charge a player would get by waiting between attacks.
-        ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
-        sword.addEnchantment(enchantment, 2);
-        player.setHeldItem(EnumHand.MAIN_HAND, sword);
-        MELEE_COOLDOWN.setInt(player, 30);
-        player.setSprinting(false);
-        player.onGround = true;
-        player.fallDistance = 0;
     }
 
     private static void reset(EntityLivingBase target) {

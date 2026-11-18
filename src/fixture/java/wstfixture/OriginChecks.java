@@ -203,7 +203,7 @@ public final class OriginChecks {
         verifyMelee(pet, player, false);
         checkNpcCast(server, sender, world, player);
 
-        EntityPlayerMP other = MeleeChecks.secondPlayer(server, world);
+        EntityPlayerMP other = NativeFixture.secondPlayer(server, world);
         other.setHealth(20);
         wolf.setAttackTarget(other);
         require(wolf.getAttackTarget() == null, "exact spirit accepted a protected player target");
@@ -419,7 +419,7 @@ public final class OriginChecks {
             output("ORIGIN_RESTORED phase=" + phase + " name=" + fields[0] + " uuid=" + uuid + " private=" + mark(actual));
         }
         if (phase.equals("restart")) {
-            EntityPlayerMP other = MeleeChecks.secondPlayer(server, world);
+            EntityPlayerMP other = NativeFixture.secondPlayer(server, world);
             verifyMelee(restored.get(SNOW), other, true);
             verifyMelee(restored.get(EGG_WOLF), other, false);
             EntitySpiritWolf wolf = (EntitySpiritWolf) restored.get(WOLF);

@@ -136,7 +136,7 @@ public final class TargetChecks {
                                         boolean protectPlayers) throws Exception {
         EntityZombieMinion minion = nativeMinion(owner, world);
         EntityZombie enemy = enemy(world, 0.5, 4, 5.5);
-        EntityPlayerMP other = MeleeChecks.secondPlayer(server, world);
+        EntityPlayerMP other = NativeFixture.secondPlayer(server, world);
         WriteTrace trace = new WriteTrace(minion);
         MinecraftForge.EVENT_BUS.register(trace);
         try {
@@ -146,7 +146,7 @@ public final class TargetChecks {
             checkWrite(minion, other, "creative", protectPlayers, trace);
             other.setGameType(GameType.SURVIVAL);
             // Model a still-referenced player after that player moved away from the summon's world.
-            EntityPlayerMP away = MeleeChecks.secondPlayer(server, server.getWorld(-1));
+            EntityPlayerMP away = NativeFixture.secondPlayer(server, server.getWorld(-1));
             require(away.world != minion.world, "off-dimension target control needs a distinct world");
             checkWrite(minion, away, "off-dimension-player", protectPlayers, trace);
             minion.setAttackTarget(null);

@@ -39,7 +39,7 @@ import java.util.function.BooleanSupplier;
         acceptedMinecraftVersions = "[1.12.2]",
         acceptableRemoteVersions = "*",
         dependencies = "required-after:forge@[14.23.5.2847,);required-after:mixinbooter@[12.1,);after:ebwizardry@[4.3.19,)"
-                + ";after:wizardryutils@[1.3.0,);after:spellbundle@[1.12.2-1.7.4,)"
+                + ";after:wizardryutils@[1.3.0,);after:spellbundle@[1.12.2-1.7.4,);after:mod_lavacow@[1.6.2,)"
 )
 public final class WizardrySummonTweaksMod {
     @Mod.Instance(Tags.MOD_ID)
@@ -91,6 +91,7 @@ public final class WizardrySummonTweaksMod {
         addProvider(providers, "ebwizardry", "wizardry.WizardrySummonProvider");
         addProvider(providers, "wizardryutils", "wizardryutils.WizardryUtilsSummonProvider");
         addProvider(providers, "spellbundle", "spellbundle.SpellBundleSummonProvider");
+        addProvider(providers, "mod_lavacow", "fish.FishSummonProvider");
         tracker.start(event.getServer(), providers);
         boolean wizardry = providers.containsKey("ebwizardry");
         combat = new CombatPolicy(rules, tracker);
