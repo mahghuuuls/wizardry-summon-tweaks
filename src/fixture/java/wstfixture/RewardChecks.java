@@ -105,11 +105,19 @@ public final class RewardChecks {
             String classification = "AFFECTED";
             switch (name) {
                 case "native-snow":
+                case "native-snow-mob":
                     victim = OriginChecks.checkSpawn(world, player, "summon_snow_golem", EntitySnowman.class, false);
                     place(victim, 24.5);
                     entities.add(victim);
                     giveBoots(victim, "native-supplied");
-                    action = this::killAsPlayer;
+                    if (name.equals("native-snow-mob")) {
+                        EntityZombie enemy = new EntityZombie(world);
+                        add(enemy, 22.5);
+                        enemy.getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(100);
+                        action = () -> require(enemy.attackEntityAsMob(victim), "Original Zombie hit did not kill the Snow Golem");
+                    } else {
+                        action = this::killAsPlayer;
+                    }
                     break;
                 case "enemy-killed-by-summon": {
                     victim = new EntityZombie(world);
@@ -280,7 +288,8 @@ public final class RewardChecks {
                         && player.getUniqueID().equals(trace.xpCredit) && trace.xpInput > 0,
                         "native summon kill lost the original actor or credit");
             }
-            if (name.equals("native-snow") || name.equals("enemy-killed-by-summon") || name.equals("supplied-gear")) {
+            if (name.equals("native-snow") || name.equals("native-snow-mob") || name.equals("enemy-killed-by-summon")
+                    || name.equals("supplied-gear")) {
                 require(trace.itemInput.keySet().stream().anyMatch(item -> item.startsWith("minecraft:golden_boots|")),
                         "the native death did not offer the supplied boots");
             }
